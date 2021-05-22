@@ -283,7 +283,7 @@
 //      1 = 0   Brown-out Detector trigger level bit 1
 //      0 = 1   Brown-out Detector trigger level bit 0
 
-#define DEVELOPER 0
+#define DEVELOPER 1
 
 #define PMODE    8    // Input - HIGH = Program Mode, LOW = Debug Mode
 #define VCC      9    // Target Pin 8 - Vcc
@@ -300,7 +300,13 @@
 
 boolean       progMode = false;
 boolean       debugWireOn = false;
-byte          buf[256];               // Command and data buffer (also used by programmer)
+//byte          buf[256];               // Command and data buffer (also used by programmer)
+//!! decrease buffer by one to prevent idx of type byte to be out of range
+// comparison is always true due to limited range of data type
+//!! invalid conversion from 'byte*' {aka 'unsigned char*'} to 'const char*'
+byte          buf[255];               // Command and data buffer (also used by programmer)
+//!! invalid conversion from 'byte*' {aka 'unsigned char*'} to 'const char*'
+//byte          flashBuf[64];           // Flash read buffer for Diasm and FXxxxx and FBxxxx commands
 byte          flashBuf[64];           // Flash read buffer for Diasm and FXxxxx and FBxxxx commands
 unsigned int  flashStart;             // Base address of data in flashBuf[]
 boolean       flashLoaded = false;    // True if flashBuf[] has valid data
@@ -325,6 +331,13 @@ unsigned int  timeOutDelay;           // Timeout delay (based on baud rate)
 boolean       runMode;                // If HIGH Debug Mode, else Program
 boolean       reportTimeout = true;   // If true, report read timeout errors
 
+// uses 16 bytes more than the (const byte[]) cast that caused errors in MicrochipStudio (2021)
+//!! invalid conversion from 'const byte*' {aka 'const unsigned char*'} to 'byte*' {aka 'unsigned char*'} [-fpermissive]
+byte tmpArray[2];                     // Array for commands given to sendCmd()
+
+// baud rate of debugWire
+//unsigned long baud = 15625; // test value (communication over DebugWire functions with AtMega328p)
+
 
 OnePinSerial  debugWire(RESET);
 
@@ -337,7 +350,9 @@ void setup () {
   pinMode(PMODE, INPUT);               // Mode Input
   digitalWrite(PMODE, HIGH);
   delay(1);
-  if (runMode = digitalRead(PMODE)) {
+  runMode = digitalRead(PMODE);
+  //if (runMode = digitalRead(PMODE)) {
+  if (runMode) { //!!
     selectProgrammer();
   } else {
     selectDebugger();
@@ -380,6 +395,8 @@ void powerOff () {
   disableSpiPins();
   digitalWrite(VCC, LOW);
   pinMode(VCC, INPUT);
+  //!!!
+  //delay(50);
   delay(50);
   progMode = false;
 }
@@ -719,7 +736,10 @@ boolean doBreak () {
   }
   SREG = oldSREG;             // turn interrupts back on
   delay(10);
+  //!!!! // changes doesn't help
   unsigned long baud = 8000000L / pulse;
+  //unsigned long baud = 15594; // test value
+  //unsigned long baud = 16000; // test value
   cursor = 0;
   printCmd(F("Speed"));
   Serial.print(baud, DEC);
@@ -782,7 +802,7 @@ byte readDecimal (byte off) {
   byte val = 0;
   char cc;
   while ((cc = buf[off++]) != 0 && cc >= '0' && cc <= '9') {
-    val = (val * 10) + (byte) (cc - '0');
+    val = (val * 10) + (byte)(cc - '0');
   }
   return val;
 }
@@ -823,7 +843,9 @@ void printBufToHex8 (int count, boolean trailCrLF) {
 }
 
 char toHexDigit (byte nib) {
-  if (nib >= 0 & nib < 10) {
+  //if (nib >= 0 & nib < 10) { //!!
+  //if (nib >= 0 && nib < 10) { // faster comparison
+  if (nib < 10) { // test for nib >= 0 not needed since nib is of type unsigned uint8_t
     return '0' + nib;
   } else {
     return 'A' + (nib - 10);
@@ -886,22 +908,33 @@ void sendCmd (byte* data, byte count) {
 }
 
 byte getResponse (int expected) {
-  return getResponse(&buf[0], expected);
+  //!!
+  //return getResponse(&buf[0], expected);
+  return getResponse((char*)&buf[0], expected);
 }
 
-byte getResponse (byte *data, int expected) {
+//!!
+//byte getResponse (byte *data, int expected) {
+byte getResponse (char *data, int expected) {
   byte idx = 0;
   byte timeout = 0;
   do {
+    //!!!
+    //if (true) {
     if (debugWire.available()) {
       data[idx++] = debugWire.read();
+      //Serial.print(F("data[idx]"));
+      //Serial.println(data[idx]);
       timeout = 0;
       if (expected > 0 && idx == expected) {
         return expected;
       }
     } else {
       delayMicroseconds(timeOutDelay);
+      //Serial.print(F("dw not available"));
       timeout++;
+      //Serial.print("timeout: ");
+      //Serial.println(timeout);
     }
   } while (timeout < 50 && idx < sizeof(buf));
   if (reportTimeout) {
@@ -919,25 +952,43 @@ void setTimeoutDelay (unsigned int rate) {
 }
 
 unsigned int getWordResponse () {
+  //!!
   byte tmp[2];
-  getResponse(&tmp[0], 2);
+  //char tmp[2];
+  //!!
+  //getResponse(&tmp[0], 2);
+  getResponse((char*)&tmp[0], 2);
   return ((unsigned int) tmp[0] << 8) + tmp[1];
 }
 
 boolean checkCmdOk () {
+  //!!
   byte tmp[2];
-  byte rsp = getResponse(&tmp[0], 1);
+  //char tmp[2];
+  //!!
+  //byte rsp = getResponse(&tmp[0], 1);
+  byte rsp = getResponse((char*)&tmp[0], 1);
+  //!!!!!! shows error, but doesn't help to correct it
+  // Serial.print(F("rsp: ")); // debug value
+  // Serial.print(rsp); // debug value
+  // Serial.print(F(", tmp[0] ")); // debug value
+  // Serial.println(tmp[0]); // debug value
   if (rsp == 1 && tmp[0] == 0x55) {
     println("Ok");
     return true;
-  } else {
-    return false;
+  //!!!
+  //} else {
+  //  return false;
   }
 }
 
 boolean checkCmdOk2 () {
+  //!! invalid conversion from 'byte*' {aka 'unsigned char*'} to 'char*'
   byte tmp[2];
-  if (getResponse(&tmp[0], 2) == 2 && tmp[0] == 0x00 && tmp[1] == 0x55) {
+  //char tmp[2];
+  //!!
+  //if (getResponse(&tmp[0], 2) == 2 && tmp[0] == 0x00 && tmp[1] == 0x55) {
+  if (getResponse((char*)&tmp[0], 2) == 2 && tmp[0] == 0x00 && tmp[1] == 0x55) {
     println("Ok");
     return true;
   } else {
@@ -1015,7 +1066,11 @@ boolean  readAllRegisters () {
 // Set or clear bit in I/O address 0x00 - 0x1F by generating and executing an "sbi" or "cbi" instruction
 void setClrIOBit (byte addr, byte bit, boolean set) {
   // Generate an "sbi/cbi addr,bit" instruction
-  byte cmd[] = {0x64, 0xD2, set ? 0x9A : 0x98, ((addr & 0x1F) << 3) + (bit & 0x7), 0x23};  // 1001 10x0 aaaa abbb
+  //!! narrowing conversion of '(set ? 154 : 152)' from 'int' to 'byte' {aka 'unsigned char'}
+  //!! narrowing conversion of '((((int)(((unsigned char)((int)addr)) & 31)) << 3) + ((int)(((unsigned char)((int)bit)) & 7)))' from 'int' to 'byte' {aka 'unsigned char'}
+  // (max value of ((addr & 31) << 3) is 248) + (max value of bit & 0x7 is 7) is 255, that's in the range of byte
+  //byte cmd[] = {0x64, 0xD2, set ? 0x9A : 0x98, ((addr & 0x1F) << 3) + (bit & 0x7), 0x23};  // 1001 10x0 aaaa abbb
+  byte cmd[] = {0x64, 0xD2, set ? (byte)0x9A : (byte)0x9A, (byte)(((addr & 0x1F) << 3) + (bit & 0x7)), 0x23};  // 1001 10x0 aaaa abbb // TODO
   sendCmd(cmd,  sizeof(cmd));
 }
 
@@ -1028,7 +1083,10 @@ void writeSRamByte (unsigned int addr, byte val) {
                    0xD1, 0x00, 0x20,                                  // Set End Reg number (r31) + 1
                    0xC2, 0x05,                                        // Set repeating copy to registers via DWDR
                    0x20,                                              // Go
-                   addr & 0xFF, addr >> 8,                            // r31:r30 (Z) = addr
+                   //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                   //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                   //addr & 0xFF, addr >> 8,                            // r31:r30 (Z) = addr
+                   (byte)(addr & 0xFF), (byte)(addr >> 8),          // r31:r30 (Z) = addr
                    0xD0, 0x00, 0x01,
                    0xD1, 0x00, 0x03,
                    0xC2, 0x04,                                        // Set simulated "in r?,DWDR; st Z+,r?" insrtuctions
@@ -1048,7 +1106,10 @@ byte readSRamByte (unsigned int addr) {
                    0xD1, 0x00, 0x20,                                  // Set End Reg number (r31) + 1
                    0xC2, 0x05,                                        // Set repeating copy to registers via DWDR
                    0x20,                                              // Go
-                   addr & 0xFF, addr >> 8,                            // r31:r30 (Z) = addr
+                   //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                   //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                   //addr & 0xFF, addr >> 8,                            // r31:r30 (Z) = addr
+                   (byte)(addr & 0xFF), (byte)(addr >> 8),          // r31:r30 (Z) = addr
                    0xD0, 0x00, 0x00,                                  // 
                    0xD1, 0x00, 0x02,                                  // 
                    0xC2, 0x00,                                        // Set simulated "ld r?,Z+; out DWDR,r?" insrtuctions
@@ -1076,9 +1137,16 @@ boolean readSRamBytes (unsigned int addr, byte len) {
                      0xD1, 0x00, 0x20,                                // Set End Reg number (r31) + 1
                      0xC2, 0x05,                                      // Set repeating copy to registers via DWDR
                      0x20,                                            // Go
-                     addr & 0xFF, addr >> 8,                          // r31:r30 (Z) = addr
+                     //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                     //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                     //addr & 0xFF, addr >> 8,                            // r31:r30 (Z) = addr
+                     (byte)(addr & 0xFF), (byte)(addr >> 8),          // r31:r30 (Z) = addr
                      0xD0, 0x00, 0x00,                                // 
-                     0xD1, len2 >> 8, len2,                           // Set repeat count = len * 2
+                     //!! narrowing conversion of '(len2 >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                     //!! narrowing conversion of '(len2 >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                     // len2 is of type uint16_t and may be greater than range of byte// MSByte and LSByte are stored in array seperatly
+                     //0xD1, len2 >> 8, len2,                           // Set repeat count = len * 2
+                     0xD1, (byte)(len2 >> 8), (byte)len2,           // Set repeat count = len * 2
                      0xC2, 0x00,                                      // Set simulated "ld r?,Z+; out DWDR,r?" instructions
                      0x20};                                           // Go
     sendCmd(rdSRam, sizeof(rdSRam));
@@ -1124,7 +1192,10 @@ byte readEepromByte (unsigned int addr) {
                     0xD1, 0x00, 0x20,                                   // Set End Reg number (r31) + 1
                     0xC2, 0x05,                                         // Set repeating copy to registers via DWDR
                     0x20,                                               // Go
-                    0x01, 0x01, addr & 0xFF, addr >> 8};                // Data written into registers r28-r31
+                    //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                    //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                    //0x01, 0x01, addr & 0xFF, addr >> 8};                // Data written into registers r28-r31
+                    0x01, 0x01, (byte)(addr & 0xFF), (byte)(addr >> 8)};// Data written into registers r28-r31
   byte doRead[]  = {0x64,                                               // Set up for single step using loaded instruction
                     0xD2, outHigh(eearh, 31), outLow(eearh, 31), 0x23,  // out EEARH,r31  EEARH = ah  EEPROM Address MSB
                     0xD2, outHigh(eearl, 30), outLow(eearl, 30), 0x23,  // out EEARL,r30  EEARL = al  EEPROMad Address LSB
@@ -1159,7 +1230,10 @@ void writeEepromByte (unsigned int addr, byte val) {
                     0xD1, 0x00, 0x20,                                     // Set End Reg number (r31) + 1
                     0xC2, 0x05,                                           // Set repeating copy to registers via DWDR
                     0x20,                                                 // Go
-                    0x04, 0x02, addr & 0xFF, addr >> 8};                  // Data written into registers r28-r31
+                    //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                    //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                    //0x04, 0x02, addr & 0xFF, addr >> 8};                  // Data written into registers r28-r31
+                    0x04, 0x02, (byte)(addr & 0xFF), (byte)(addr >> 8)};// Data written into registers r28-r31
   byte doWrite[] = {0x64,                                                 // Set up for single step using loaded instruction
                     0xD2, outHigh(eearh, 31), outLow(eearh, 31), 0x23,    // out EEARH,r31  EEARH = ah  EEPROM Address MSB
                     0xD2, outHigh(eearl, 30), outLow(eearl, 30), 0x23,    // out EEARL,r30  EEARL = al  EEPROM Address LSB
@@ -1194,9 +1268,15 @@ int readFlashPage (char *data, unsigned int len, unsigned int addr) {
                       0xD1, 0x00, 0x20,                                   // Set End Reg number (r31) + 1
                       0xC2, 0x05,                                         // Set repeating copy to registers via DWDR
                       0x20,                                               // Go
-                      addr & 0xFF, addr >> 8,                             // r31:r30 (Z) = addr
+                      //!! narrowing conversion of '(addr & 255)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                      //!! narrowing conversion of '(addr >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                      //addr & 0xFF, addr >> 8,                             // r31:r30 (Z) = addr
+                      (byte)(addr & 0xFF), (byte)(addr >> 8),           // r31:r30 (Z) = addr
                       0xD0, 0x00, 0x00,                                   // Set start = 0
-                      0xD1, lenx2 >> 8,lenx2,                             // Set end = repeat count = sizeof(flashBuf) * 2
+                      //!! narrowing conversion of '(lenx2 >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                      //!! narrowing conversion of 'lenx2' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+                      //0xD1, lenx2 >> 8,lenx2,                             // Set end = repeat count = sizeof(flashBuf) * 2
+                      0xD1, (byte)(lenx2 >> 8), (byte)lenx2,                             // Set end = repeat count = sizeof(flashBuf) * 2
                       0xC2, 0x02,                                         // Set simulated "lpm r?,Z+; out DWDR,r?" instructions
                       0x20};                                              // Go
     sendCmd(rdFlash, sizeof(rdFlash));
@@ -1227,7 +1307,9 @@ void printCommErr (byte read, byte expected) {
 
 unsigned int getFlashWord (unsigned int addr) {
   if (!flashLoaded || addr < flashStart || addr >= flashStart + sizeof(flashBuf)) {
-    byte len = readFlashPage(&flashBuf[0], sizeof(flashBuf), flashStart = addr);
+    //!!
+    //byte len = readFlashPage((char*)&flashBuf[0], sizeof(flashBuf), flashStart = addr);
+    byte len = readFlashPage((char*)&flashBuf[0], sizeof(flashBuf), flashStart = addr);
     if (len != sizeof(flashBuf)) {
       printCommErr(len, sizeof(flashBuf));
     }
@@ -1249,6 +1331,8 @@ void printCmd () {
 }
 
 void echoCmd () {
+  //!!
+  //print(buf);
   print((char*) buf);
   write(':');
   tabTo(8);
@@ -1263,30 +1347,43 @@ void echoSetCmd (byte len) {
 }
 
 unsigned int getPc () {
-  sendCmd((const byte[]) {0xF0}, 1);
+  //!!
+  //sendCmd((const byte[]) {0xF0}, 1);
+  tmpArray[0] = 0xF0;
+  sendCmd(tmpArray, 1);
   unsigned int pc = getWordResponse();
   return (pc - 1) * 2;
 }
 
 unsigned int getBp () {
-  sendCmd((const byte[]) {0xF1}, 1);
+  //!!
+  //sendCmd((const byte[]) {0xF1}, 1);
+  tmpArray[0] = 0xF1;
+  sendCmd(tmpArray, 1);
   return (getWordResponse() - 1) * 2;
 }
 
 unsigned int getOpcode () {
-  sendCmd((const byte[]) {0xF1}, 1);
+  //!!
+  //sendCmd((const byte[]) {0xF1}, 1);
+  tmpArray[0] = {0xF1};
+  sendCmd(tmpArray, 1);
   return getWordResponse();
 }
 
 void setPc (unsigned int pc) {
   pc = pc / 2;
-  byte cmd[] = {0xD0, pc >> 8, pc & 0xFF};
+  //!!
+  //byte cmd[] = {0xD0, pc >> 8, pc & 0xFF};
+  byte cmd[] = {0xD0, (byte)(pc >> 8), (byte)pc};
   sendCmd(cmd, sizeof(cmd));
 }
 
 void setBp (unsigned int bp) {
   bp = bp / 2;
-  byte cmd[] = {0xD1, bp >> 8, bp & 0xFF};
+  //!!
+  //byte cmd[] = {0xD1, bp >> 8, bp & 0xFF};
+  byte cmd[] = {0xD1, (byte)(bp >> 8), (byte)bp};
   sendCmd(cmd, sizeof(cmd));
 }
 
@@ -1339,7 +1436,7 @@ void printDebugCommands () {
 
 void setRepeatCmd (const __FlashStringHelper* cmd, unsigned int addr) {
   strcpy_P(rpt, (char*) cmd);
-  byte idx = (byte) strlen_P((char*) cmd);
+  byte idx = (byte)strlen_P((char*) cmd);
   rpt[idx++] = toHexDigit((addr >> 12) & 0xF);
   rpt[idx++] = toHexDigit((addr >> 8) & 0xF);
   rpt[idx++] = toHexDigit((addr >> 4) & 0xF);
@@ -1369,7 +1466,9 @@ void debugger () {
     // This section implement the debugWire commands after being enabled by the break ('b') command
     if (Serial.available()) {
       if (getString() == 0 && rpt[0] != 0) {              // Check for repeated command
-        strcpy(buf, rpt);
+        //!!
+        //strcpy(buf, rpt);
+        strcpy((char*)buf, rpt);
       }
       rpt[0] = 0;
       if (bufMatches(F("BREAK"))) {                       // BREAK - Send Async BREAK Target
@@ -1401,7 +1500,10 @@ void debugger () {
         dAsm(pcSave, 1);
       } else if (bufMatches(F("RESET"))) {                // RESET - Reset Target
         echoCmd();
-        sendCmd((const byte[]) {0x07}, 1);
+        //!!
+        //sendCmd((const byte[]) {0x07}, 1);
+        tmpArray[0] = 0x07;
+        sendCmd(tmpArray, 1);
         if (checkCmdOk2()) {
           setPc(pcSave = 0);
           // Preset registers 0-31
@@ -1412,12 +1514,18 @@ void debugger () {
         }
       } else if (bufMatches(F("SIG"))) {                  // SIG - Read and Print Device Signature
         echoCmd();
-        sendCmd((const byte[]) {0xF3}, 1);
+        //!!
+        //sendCmd((const byte[]) {0xF3}, 1);
+        tmpArray[0] = 0xF3;
+        sendCmd(tmpArray, 1);
         printBufToHex8(getResponse(2), false);
         printPartFromId(buf[0], buf[1]);
       } else if (bufMatches(F("EXIT"))) {                 // EXIT - Exit from debugWire mode back to In-System
         echoCmd();
-        sendCmd((const byte[]) {0x06}, 1);
+        //!!
+        //sendCmd((const byte[]) {0x06}, 1);
+        tmpArray[0] = 0x06;
+        sendCmd(tmpArray, 1);
         debugWireOn = false;
         enableSpiPins();
         println(F("debugWire temporarily Disabled"));
@@ -1470,7 +1578,9 @@ void debugger () {
         println();
       } else if (bufMatches(F("IOxX"))) {                 // IOxX - Print I/O space location xX, where xx is address for "in", or "out"
         // Set repeat command for I/O input polling
-        strcpy(rpt, buf);
+        //!!
+        //strcpy(rpt, buf);
+        strcpy(rpt, (char*)buf);
         echoCmd();
         unsigned int addr = convertHex(2);
         if (addr < 0x40) {
@@ -1643,7 +1753,9 @@ void debugger () {
         println();
       } else if (bufMatches(F("FBxXXX"))) {               // FBxXXX - Print 64 bytes from Flash addr xXXX
         unsigned int addr = convertHex(2);
-        unsigned int count = readFlashPage(&buf[0], sizeof(flashBuf), addr);
+        //!!
+        //unsigned int count = readFlashPage(&buf[0], sizeof(flashBuf), addr);
+        unsigned int count = readFlashPage((char*)&buf[0], sizeof(flashBuf), addr);
         if (count == sizeof(flashBuf)) {
           for (byte ii = 0; ii < count; ii++) {
             if ((ii & 0x0F) == 0) {
@@ -1658,7 +1770,9 @@ void debugger () {
               print(F("    "));
               for (byte jj = 0; jj < 16; jj++) {
                 char cc = buf[idx + jj];
-                write(cc >= 0x20 && cc <= 0x7F ? cc : '.');
+                //!!! comparison is always false due to limited range of data type
+                //write(cc >= 0x20 && cc <= 0x7F ? cc : '.');
+                write(cc >= 0x20 ? cc : '.');
               }
               println();
             } else {
@@ -1671,7 +1785,9 @@ void debugger () {
         }
       } else if (bufMatches(F("FWxXXX"))) {               // FWxXXX - Print 32 words (64 bytes) from Flash addr xXXX
         unsigned int addr = convertHex(2);
-        unsigned int count = readFlashPage(&buf[0], sizeof(flashBuf), addr);
+        //!!
+        //unsigned int count = readFlashPage(&buf[0], sizeof(flashBuf), addr);
+        unsigned int count = readFlashPage((char*)&buf[0], sizeof(flashBuf), addr);
         if (count == sizeof(flashBuf)) {
           for (byte ii = 0; ii < count; ii += 2) {
             if ((ii & 0x0E) == 0) {
@@ -1707,12 +1823,17 @@ void debugger () {
           if (true) {
             readSRamByte((unsigned int) eecr + 0x2C);     // Reading EECR register seems to fix unexpected EE_RDY interrupt issue
             unsigned int pc = pcSave / 2;
-            byte cmd[] = {0xD0, pc >> 8, pc, 0x31};
+            //!!
+            //byte cmd[] = {0xD0, pc >> 8, pc, 0x31};
+            byte cmd[] = {0xD0, (byte)(pc >> 8), (byte)pc, 0x31};
             sendCmd(cmd, sizeof(cmd));
           } else {
             setPc(pcSave);
-            sendCmd((const byte[]) {0x31}, 1);
-            //sendCmd((const byte[]) {0x60, 0x31}, 2);
+            //!! invalid conversion from 'const byte*' {aka 'const unsigned char*'} to 'byte*' {aka 'unsigned char*'}
+            //sendCmd((const byte[]) {0x31}, 1);
+            tmpArray[0] = 0x31;
+            sendCmd(tmpArray, 1);
+            //sendCmd((const byte[]) {0x60, 0x31}, 2); // old testcode
           }
           if (checkCmdOk2()) {
             dAsm(pcSave = getPc(), 1);
@@ -1733,7 +1854,12 @@ void debugger () {
         pc /= 2;
         bp /= 2;
         // Needs 0x41/0x61 or break doesn't happen
-        byte cmd[] = {0x61, 0xD1, bp >> 8, bp, 0xD0, pc >> 8, pc, 0x30};
+        //!! narrowing conversion of '(bp >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+        //!! narrowing conversion of 'bp' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+        //!! narrowing conversion of '(pc >> 8)' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+        //!! narrowing conversion of 'pc' from 'unsigned int' to 'byte' {aka 'unsigned char'}
+        //byte cmd[] = {0x61, 0xD1, bp >> 8, bp, 0xD0, pc >> 8, pc, 0x30};
+        byte cmd[] = {0x61, 0xD1, (byte)(bp >> 8), (byte)bp, 0xD0, (byte)(pc >> 8), (byte)pc, 0x30};
         sendCmd(cmd, sizeof(cmd));
         println();
         breakWatch = true;
@@ -1750,7 +1876,9 @@ void debugger () {
         bp /= 2;
         unsigned int pc = pcSave / 2;
         // Needs 0x41/0x61 or break doesn't happen
-        byte cmd[] = {0x61, 0xD1, bp >> 8, bp, 0xD0, pc >> 8, pc, 0x30};
+        //!!
+        //byte cmd[] = {0x61, 0xD1, bp >> 8, bp, 0xD0, pc >> 8, pc, 0x30};
+        byte cmd[] = {0x61, 0xD1, (byte)(bp >> 8), (byte)bp, 0xD0, (byte)(pc >> 8), (byte)pc, 0x30};
         sendCmd(cmd, sizeof(cmd));
         println();
         breakWatch = true;
@@ -1762,7 +1890,9 @@ void debugger () {
         // Set Run without breakpoint (timers enabled)
         pcSave = pc;
         pc /= 2;
-        byte cmd[] = {0x60, 0xD0, pc >> 8, pc, 0x30};
+        //!!
+        //byte cmd[] = {0x60, 0xD0, pc >> 8, pc, 0x30};
+        byte cmd[] = {0x60, 0xD0, (byte)(pc >> 8), (byte)pc, 0x30};
         sendCmd(cmd, sizeof(cmd));
         println(F(" Running"));
         breakWatch = true;
@@ -1773,7 +1903,9 @@ void debugger () {
         pcSave = opcode == 0x9598 ? pcSave + 2 : pcSave;
         // Set Run without breakpoint (timers enabled)
         unsigned int pc = pcSave / 2;
-        byte cmd[] = {0x60, 0xD0, pc >> 8, pc, 0x30};
+        //!!
+        //byte cmd[] = {0x60, 0xD0, pc >> 8, pc, 0x30};
+        byte cmd[] = {0x60, 0xD0, (byte)(pc >> 8), (byte)pc, 0x30};
         sendCmd(cmd, sizeof(cmd));
         println(F("Running"));
         breakWatch = true;
@@ -1826,7 +1958,12 @@ void debugger () {
         unsigned int opcode = convertHex(5);
         byte cmd[] = {0xD2, opcode >> 8, opcode & 0xFF};
         sendCmd(cmd, sizeof(cmd));
-        sendCmd((const byte[]) {0x64, 0x23}, 2);
+        //!!
+        //sendCmd((const byte[]) {0x64, 0x23}, 2);
+        tmpArray[0] = 0x64; 
+        tmpArray[1] = 0x23;
+        sendCmd(tmpArray, 2);
+        //sendCmd(tmpArray = {0x64, 0x23}, 2); // wrong code!!!
         printHex16(opcode);
         print("  ");
         cursor = 13;
@@ -1974,7 +2111,9 @@ void debugger () {
           if (!hasDeviceInfo) {
             identifyDevice();
           }
-          if (ckdiv8 != 0 && enterProgramMode()) {
+          //!!!
+          if (true) {
+          //if (ckdiv8 != 0 && enterProgramMode()) {
              byte lowFuse = ispSend(0x50, 0x00, 0x00, 0x00);
              byte newFuse;
              boolean enable = cc == '8';
@@ -2003,7 +2142,9 @@ void debugger () {
           if (!hasDeviceInfo) {
             identifyDevice();
           }
-          if (dwen != 0 && enterProgramMode()) {
+          //!!!
+          if (true) {
+          //if (dwen != 0 && enterProgramMode()) {
             byte highFuse = ispSend(0x58, 0x08, 0x00, 0x00);
             byte newFuse;
             boolean enable = cc == '+';
@@ -2047,7 +2188,10 @@ void debugger () {
           if (doBreak()) {
             disableSpiPins();
             printCmd(F("SIG"));
-            sendCmd((const byte[]) {0xF3}, 1);
+            //!!
+            //sendCmd((const byte[]) {0xF3}, 1);
+            tmpArray[0] = {0xF3};
+            sendCmd(tmpArray, 1);
             printBufToHex8(getResponse(2), false);
             printPartFromId(buf[0], buf[1]);
             print(F("Flash:  "));
@@ -2073,7 +2217,49 @@ void debugger () {
             pcSave = 0;
           }
           break;
+/*          
+#if DEVELOPER       
+        case 'S':                                           // Set Speed (Baud rate) of DebugWire interface
+          echoSetCmd(after('=') - 1);
+          //byte reg = readDecimal(1);
+          //if (reg < 32) {
+          if (true) {
+            byte val = convertHex(after('='));
+            printHex16(val);
+            // baud = 
+          } else {
+            print(F("Invalid Baud rate for DebugWire"));
+          }
+          println();
+          break;
+          
+        case 'T':                                             // Switch off power to chip
+          powerOff();
+          println(F("VCC off"));
+          break;
 
+        case 'I':                                             // Increase debugWire Baud rate
+        case 'D':                                             // Decrease debugWire Baud rate
+
+          if (true) {
+            boolean increase = cc == 'I';
+            if (increase) {
+              // Increase debugWire Baud rate by 10
+              baud += 10;
+            } else {
+              // Decrease debugWire Baud rate by 10
+              baud -= 10;
+            }
+            print(F("DW Baud rate "));
+            print(increase ? F("+10") : F("-10"));
+            print(F("rate is now: "));
+            Serial.println(baud); // debug value
+          } else {
+            println(F("Baud rate out of range"));
+          }
+          break;
+          
+#endif    */      
         default:
           printMenu();
           break;
@@ -2153,7 +2339,9 @@ void dAsm (unsigned int addr, byte count) {
       word2 = getFlashWord(addr + idx + 2);
       // 22 bit address
       long add22 = (opcode & 0x1F0) << 13;
-      add22 += (opcode & 1) << 16;
+      //!! left shift count >= width of type [-Wshift-count-overflow]
+      //add22 += (opcode & 1) << 16;
+      add22 += (long)(opcode & 1) << 16;
       add22 += word2;
       printHex24(add22 * 2);
       skipWord = true;
@@ -2163,7 +2351,9 @@ void dAsm (unsigned int addr, byte count) {
       word2 = getFlashWord(addr + idx + 2);
       // 22 bit address
       long add22 = (opcode & 0x1F0) << 13;
-      add22 += (opcode & 1) << 16;
+      //!! left shift count >= width of type [-Wshift-count-overflow]
+      //add22 += (opcode & 1) << 16;
+      add22 += (long)(opcode & 1) << 16;
       add22 += word2;
       printHex24(add22 * 2);
       skipWord = true;
@@ -2241,12 +2431,16 @@ void dAsm2Byte (unsigned int addr, unsigned int opcode) {
     printDstReg(((opcode & 0xF0) >> 4) + 16);
     print(F(",0x"));
     printHex8(((opcode & 0xF00) >> 4) + (opcode & 0x0F));
-  } else if ((opcode & 0x7FF) == 0xA000) {                            // lds
+  //} else if ((opcode & 0x7FF) == 0xA000) {                            // lds
+  //!! bitwise comparison always evaluates to false
+  } else if ((opcode & ~0x7FF) == 0xA000) {                            // lds
     printInst(F("lds"));
     printDstReg(((opcode & 0xF0) >> 4) + 16);
     print(F(",0x"));
     printHex8(((opcode & 0x700) >> 4) + (opcode & 0x0F) + 0x40);
-  } else if ((opcode & 0x7FF) == 0xA800) {                            // sts
+  //} else if ((opcode & 0x7FF) == 0xA800) {                            // sts
+  //!! bitwise comparison always evaluates to false
+  } else if ((opcode & ~0x7FF) == 0xA800) {                            // sts
     printInst(F("sts"));
     print(F("0x"));
     printHex8(((opcode & 0x700) >> 4) + (opcode & 0x0F) + 0x40);
@@ -2280,7 +2474,8 @@ void dAsm2Byte (unsigned int addr, unsigned int opcode) {
 
   // Print functions that track cursor position (to support tabbing)
 
-void print (char *txt) {
+//void print (char *txt) { //!! warning: ISO C++ forbids converting a string constant to 'char*'
+void print (const char *txt) {
   cursor += strlen(txt);
   Serial.print(txt);
 }
@@ -2289,8 +2484,8 @@ void print (const __FlashStringHelper* txt) {
   cursor += strlen_P((char *) txt);
   Serial.print(txt);
 }
-
-void println (char *txt) {
+// void println (char *txt) { //!! warning: ISO C++ forbids converting a string constant to 'char*'
+void println (const char *txt) {
   Serial.println(txt);
   cursor = 0;
 }
@@ -2805,15 +3000,20 @@ void avrisp () {
       pagesize   = (buf[12] << 8) + buf[13];
       // Setup page mask for 'here' address variable
       if (pagesize == 32) {
-        hMask = 0xFFFFFFF0;
+        //hMask = 0xFFFFFFF0; //!! conversion from 'long unsigned int' to 'unsigned int' changes value from '4294967295' to '65535'
+        hMask = 0xFFF0;
       } else if (pagesize == 64) {
-        hMask = 0xFFFFFFE0;
+        //hMask = 0xFFFFFFE0; //!! conversion from 'long unsigned int' to 'unsigned int' changes value from '4294967295' to '65535'
+        hMask = 0xFFE0;
       } else if (pagesize == 128) {
-        hMask = 0xFFFFFFC0;
+        //hMask = 0xFFFFFFC0; //!! conversion from 'long unsigned int' to 'unsigned int' changes value from '4294967295' to '65535'
+        hMask = 0xFFC0;
       } else if (pagesize == 256) {
-        hMask = 0xFFFFFF80;
+        //hMask = 0xFFFFFF80; //!! conversion from 'long unsigned int' to 'unsigned int' changes value from '4294967295' to '65535'
+        hMask = 0xFF80;
       } else {
-        hMask = 0xFFFFFFFF;
+        //hMask = 0xFFFFFFFF; //!! conversion from 'long unsigned int' to 'unsigned int' changes value from '4294967295' to '65535'
+        hMask = 0xFFFF;
       }
       eepromsize = (buf[14] << 8) + buf[15];
       empty_reply();
@@ -2890,7 +3090,8 @@ void avrisp () {
         fill(length);
         if (CRC_EOP == getch()) {
           Serial.write(STK_INSYNC);
-          int ii = 0;
+          // int ii = 0; //!! comparison of integer expressions of different signedness: 'int' and 'unsigned int'
+          unsigned int ii = 0;
           unsigned int page = here & hMask;
           while (ii < length) {
             if (page != (here & hMask)) {

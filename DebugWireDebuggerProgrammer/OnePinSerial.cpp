@@ -467,4 +467,3 @@ void OnePinSerial::write(uint8_t b)
 
   tunedDelay(delay);
 }
-
