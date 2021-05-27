@@ -21,8 +21,9 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 #include "OnePinSerial.h"
+#include "PROGMEM_readAnything.h"
 
 //  ATTiny85 Pinout
 //
@@ -283,20 +284,139 @@
 //      1 = 0   Brown-out Detector trigger level bit 1
 //      0 = 1   Brown-out Detector trigger level bit 0
 
-#define DEVELOPER 1
+#define DEVELOPER true
 
-#define PMODE    8    // Input - HIGH = Program Mode, LOW = Debug Mode
-#define VCC      9    // Target Pin 8 - Vcc
-#define RESET   10    // Target Pin 1 - RESET, or SCI
-#define MOSI    11    // Target Pin 5 - MOSI,  or SDI
-#define MISO    12    // Target Pin 6 - MISO,  or SII
-#define SCK     13    // Target Pin 7 - SCK,   or SDO
+#define PMODE_GPIO    8    // Input - HIGH = Program Mode, LOW = Debug Mode
+#define VCC_GPIO      9    // Target Pin 8 - Vcc
+#define RESET_GPIO   10    // Target Pin 1 - RESET, or SCI
+#define MOSI_GPIO    11    // Target Pin 5 - MOSI,  or SDI
+#define MISO_GPIO    12    // Target Pin 6 - MISO,  or SII
+#define SCK_GPIO     13    // Target Pin 7 - SCK,   or SDO
 
 // Alternate Pin Definitions for High Voltage Programmer (for future expansion)
-#define SCI     10    // Target Pin 2 - SCI
-#define SII     11    // Target Pin 6 - SII
-#define SDI     12    // Target Pin 5 - SDI
-#define SDO     13    // Target Pin 7 - SDO
+#define SCI_GPIO     10    // Target Pin 2 - SCI
+#define SII_GPIO     11    // Target Pin 6 - SII
+#define SDI_GPIO     12    // Target Pin 5 - SDI
+#define SDO_GPIO     13    // Target Pin 7 - SDO
+
+#if defined(__AVR_ATmega328P__)
+
+// TODO: REPLACE _LINE_
+  #define AVR_PMODE_DDR          DDRB
+  #define AVR_PMODE_PORT         PORTB
+  #define AVR_PMODE_PIN          PINB
+  #define AVR_PMODE_MASK         (1 << 0)
+  #define AVR_PMODE_LINE_MASK         (1 << 0)
+  
+  #define AVR_VCC_EN_DDR         DDRB
+  #define AVR_VCC_EN_PORT        PORTB
+  #define AVR_VCC_EN_MASK        (1 << 1)
+  #define AVR_VCC_EN_LINE_MASK        (1 << 1)
+  
+  #define AVR_RESET_DDR     DDRB
+  #define AVR_RESET_PORT    PORTB
+  #define AVR_RESET_MASK    (1 << 2)
+
+  #define AVR_RESET_LINE_DDR     DDRB
+  #define AVR_RESET_LINE_PORT    PORTB
+  #define AVR_RESET_LINE_MASK    (1 << 2)
+
+  // SPI PINS
+  #define AVR_ENABLE_SPI_PINS_MASK    0b00101000
+  #define AVR_DISABLE_SPI_PINS_MASK   0b00111000
+  #define AVR_SPI_DDR                 DDRB
+  #define AVR_SPI_PORT                PORTB
+  
+  #define AVR_SCK_DDR            DDRB
+  #define AVR_SCK_PORT           PORTB
+  #define AVR_SCK_PIN            PINB
+  #define AVR_SCK_MASK           (1 << 5)
+  #define AVR_SCK_LINE_MASK      (1 << 5)
+
+  #define AVR_MISO_DDR           DDRB
+  #define AVR_MISO_PORT          PORTB
+  #define AVR_MISO_PIN           PINB
+  #define AVR_MISO_MASK          (1 << 4)
+  #define AVR_MISO_LINE_MASK     (1 << 4)
+  
+  #define AVR_MOSI_DDR           DDRB
+  #define AVR_MOSI_PORT          PORTB
+  #define AVR_MOSI_PIN           PINB
+  #define AVR_MOSI_MASK          (1 << 3)
+  #define AVR_MOSI_LINE_MASK     (1 << 3)
+
+  #define AVR_CS_DDR             DDRB
+  #define AVR_CS_PORT            PORTB
+  #define AVR_CS_PIN             PINB
+  #define AVR_CS_MASK            (1 << 2)
+  #define AVR_CS_LINE_MASK       (1 << 2)
+
+#elif defined(__AVR_ATmega32U4__)
+
+// TODO: REPLACE _LINE_
+  #define AVR_PMODE_DDR          DDRB
+  #define AVR_PMODE_PORT         PORTB
+  #define AVR_PMODE_PIN          PINB4
+  #define AVR_PMODE_MASK         (1 << 4)
+  #define AVR_PMODE_LINE_MASK         (1 << 4)
+  
+  #define AVR_VCC_EN_DDR         DDRB
+  #define AVR_VCC_EN_PORT        PORTB
+  #define AVR_VCC_EN_MASK        (1 << 5)
+  #define AVR_VCC_EN_LINE_MASK        (1 << 5)
+  
+  #define AVR_RESET_DDR     DDRB
+  #define AVR_RESET_PORT    PORTB
+  #define AVR_RESET_MASK    (1 << 6)
+
+  #define AVR_RESET_LINE_DDR     DDRB
+  #define AVR_RESET_LINE_PORT    PORTB
+  #define AVR_RESET_LINE_MASK    (1 << 6)
+
+  // SPI PINS
+  #define AVR_ENABLE_SPI_PINS_MASK    0b00001100
+  #define AVR_DISABLE_SPI_PINS_MASK   0b00001110
+  #define AVR_SPI_DDR                 DDRB
+  #define AVR_SPI_PORT                PORTB
+  
+  #define AVR_SCK_DDR            DDRB
+  #define AVR_SCK_PORT           PORTB
+  #define AVR_SCK_PIN            PINB
+  #define AVR_SCK_MASK           (1 << 1)
+  #define AVR_SCK_LINE_MASK      (1 << 1)
+
+  #define AVR_MISO_DDR           DDRB
+  #define AVR_MISO_PORT          PORTB
+  #define AVR_MISO_PIN           PINB
+  #define AVR_MISO_MASK          (1 << 3)
+  #define AVR_MISO_LINE_MASK     (1 << 3)
+  
+  #define AVR_MOSI_DDR           DDRB
+  #define AVR_MOSI_PORT          PORTB
+  #define AVR_MOSI_PIN           PINB
+  #define AVR_MOSI_MASK          (1 << 2)
+  #define AVR_MOSI_LINE_MASK     (1 << 2)
+
+  #define AVR_CS_DDR             DDRB
+  #define AVR_CS_PORT            PORTB
+  #define AVR_CS_PIN             PINB
+  #define AVR_CS_MASK            (1 << 0)
+  #define AVR_CS_LINE_MASK       (1 << 0)
+
+#endif
+
+#define VCC_EN_IS_LOW_ACTIVE  false
+#define RESET_BOUNCE_COUNT    4
+
+
+#define PROG_MODE_MASK            0x01
+#define DEBUG_WIRE_ON_MASK        0x02
+#define FLASH_LOADED_MASK         0x04
+#define HAS_DEVICE_INFO_MASK      0x08
+#define BREAK_WATCH_MASK          0x10
+#define RUN_MODE_MASK             0x20
+#define REPORT_TIMEOUT_MASK       0x40
+
 
 boolean       progMode = false;
 boolean       debugWireOn = false;
@@ -338,8 +458,14 @@ byte tmpArray[2];                     // Array for commands given to sendCmd()
 // baud rate of debugWire
 //unsigned long baud = 15625; // test value (communication over DebugWire functions with AtMega328p)
 
+// number of items in an array
+template <typename T, size_t N> size_t ArraySize (T (&) [N]) {
+  return N;
+}
 
-OnePinSerial  debugWire(RESET);
+#define FV(s) ((__FlashStringHelper*)(s)) // Macro for printing Flash Variables 
+
+OnePinSerial  debugWire(RESET_GPIO);
 
 #define DEBUG_BAUD    115200
 #define PROGRAM_BAUD  19200
@@ -347,12 +473,12 @@ OnePinSerial  debugWire(RESET);
 #define DWIRE_RATE    (1000000 / 128) // Set default baud rate (1 MHz / 128) Note: the 'b' command can change this
 
 void setup () {
-  pinMode(PMODE, INPUT);               // Mode Input
-  digitalWrite(PMODE, HIGH);
+  pinMode(PMODE_GPIO, INPUT);               // Mode Input
+  digitalWrite(PMODE_GPIO, HIGH);
   delay(1);
-  runMode = digitalRead(PMODE);
-  //if (runMode = digitalRead(PMODE)) {
-  if (runMode) { //!!
+  //runMode = digitalRead(PMODE_GPIO);
+  if (runMode = digitalRead(PMODE_GPIO)) {
+  //if (runMode) { //!!
     selectProgrammer();
   } else {
     selectDebugger();
@@ -372,60 +498,213 @@ void selectDebugger() {
   breakWatch = false;
   printMenu();
 }
-
+/*
 void powerOn () {
-  pinMode(RESET, OUTPUT);
-  digitalWrite(RESET, HIGH);
+  pinMode(RESET_GPIO, OUTPUT);
+  digitalWrite(RESET_GPIO, HIGH);
   enableSpiPins();
   // Apply Vcc
-  pinMode(VCC, OUTPUT);
-  digitalWrite(VCC, HIGH);
+  pinMode(VCC_GPIO, OUTPUT);
+  digitalWrite(VCC_GPIO, HIGH);
   // Bounce RESET
-  digitalWrite(RESET, HIGH);
+  digitalWrite(RESET_GPIO, HIGH);
   delay(50);
-  digitalWrite(RESET, LOW);
+  digitalWrite(RESET_GPIO, LOW);
   delay(50);
-  digitalWrite(RESET, HIGH);
+  digitalWrite(RESET_GPIO, HIGH);
   delay(50);
-  digitalWrite(RESET, LOW);
+  digitalWrite(RESET_GPIO, LOW);
   delay(50);
 }
+*/
+// saves 70 Bytes of flash
+void powerOn () {
+  // pinMode(RESET_GPIO, OUTPUT);
+  AVR_RESET_DDR |= AVR_RESET_MASK;
+  // digitalWrite(RESET_GPIO, HIGH);
+  AVR_RESET_PORT |= AVR_RESET_MASK;
+  enableSpiPins();
+  // Apply Vcc
+  // pinMode(VCC_GPIO, OUTPUT);
+  AVR_VCC_EN_DDR |= AVR_VCC_EN_MASK;
+#if (VCC_EN_IS_LOW_ACTIVE)
+  // digitalWrite(VCC_GPIO, LOW);
+  AVR_VCC_EN_PORT &= ~AVR_VCC_EN_MASK;  // VCC enable is low active
+#else
+  // digitalWrite(VCC, HIGH);
+  AVR_VCC_EN_PORT |= AVR_VCC_EN_MASK;   // VCC enable is high active
+#endif
+  // Bounce RESET
+//  digitalWrite(RESET, HIGH);
+//  delay(50);
+//  digitalWrite(RESET, LOW);
+//  delay(50);
+//  digitalWrite(RESET, HIGH);
+//  delay(50);
+//  digitalWrite(RESET, LOW);
+//  delay(50);
 
+//  byte b = 0;
+//  while(b < RESET_BOUNCE_COUNT) {
+//    AVR_RESET_PORT |= AVR_RESET_MASK;
+//    _delay_ms(50);
+//    AVR_RESET_PORT &= ~AVR_RESET_MASK;
+//    _delay_ms(50);
+//    AVR_RESET_PORT ^= AVR_RESET_MASK;
+//    _delay_ms(50);
+//    b++;
+
+  byte b = 5;
+  while(b != 0) {
+    AVR_RESET_PORT |= AVR_RESET_MASK;
+    _delay_ms(50);
+    AVR_RESET_PORT &= ~AVR_RESET_MASK;
+    _delay_ms(50);
+//    AVR_RESET_PORT ^= AVR_RESET_MASK;
+//    _delay_ms(50);
+    b--;
+  }
+
+//  for(byte b = RESET_BOUNCE_COUNT; b != 0; b--) {
+//    AVR_RESET_PORT ^= AVR_RESET_MASK; // this does not enshure Reset is LOW after bounce
+//    _delay_ms(50);
+//  }
+}
+/*
 void powerOff () {
   disableSpiPins();
-  digitalWrite(VCC, LOW);
-  pinMode(VCC, INPUT);
+  digitalWrite(VCC_GPIO, LOW);
+  pinMode(VCC_GPIO, INPUT);
   //!!!
   //delay(50);
   delay(50);
   progMode = false;
 }
+*/
 
+// saves 12 Bytes of flash
+void powerOff () {
+  disableSpiPins();
+#if (VCC_EN_IS_LOW_ACTIVE)
+  // digitalWrite(VCC_GPIO, HIGH);
+  AVR_VCC_EN_PORT |= AVR_VCC_EN_MASK;   // VCC enable is high active
+#else
+  // digitalWrite(VCC_GPIO, LOW);
+  AVR_VCC_EN_PORT &= ~AVR_VCC_EN_MASK;  // VCC enable is low active
+#endif
+  // pinMode(VCC_GPIO, INPUT);
+  AVR_VCC_EN_DDR &= ~AVR_VCC_EN_MASK; // is this command necessary?
+  delay(50);
+  //_delay_ms(50); // This delay results in a DebugWire communication error
+  // why does this command need 6 Bytes more than delay(50)?
+  progMode = false;
+}
+/*
 void enableSpiPins () {
-  digitalWrite(SCK, LOW);
-  digitalWrite(MOSI, LOW);
-  pinMode(SCK, OUTPUT);
-  pinMode(MOSI, OUTPUT);
-  pinMode(MISO, INPUT);
+  digitalWrite(SCK_GPIO, LOW);
+  digitalWrite(MOSI_GPIO, LOW);
+  pinMode(SCK_GPIO, OUTPUT);
+  pinMode(MOSI_GPIO, OUTPUT);
+  pinMode(MISO_GPIO, INPUT);
+}
+*/
+
+// saves 28 Bytes of flash
+void enableSpiPins () {
+//  digitalWrite(SCK_GPIO, LOW);
+  AVR_SCK_PORT &= ~AVR_SCK_MASK;
+//  digitalWrite(MOSI_GPIO, LOW)
+  AVR_MOSI_PORT &= ~AVR_MOSI_MASK;
+//  pinMode(SCK_GPIO, OUTPUT);
+  AVR_SCK_DDR |= AVR_SCK_MASK;
+//  pinMode(MOSI_GPIO, OUTPUT);
+  AVR_MOSI_DDR |= AVR_MOSI_MASK;
+//  pinMode(MISO_GPIO, INPUT); // already default after boot?
+  AVR_MISO_DDR &= ~AVR_MISO_LINE_MASK;
 }
 
+/*
+// saves 24 Bytes of flash // why does this need 4 Bytes more than switching each pin individually
+void enableSpiPins () {
+//  pinMode(SCK_GPIO, OUTPUT);
+//  pinMode(MOSI_GPIO, OUTPUT)
+  AVR_SPI_DDR |= AVR_ENABLE_SPI_PINS_MASK;
+//  digitalWrite(SCK_GPIO, LOW);
+//  digitalWrite(MOSI_GPIO, LOW)
+  AVR_SPI_PORT &= ~AVR_ENABLE_SPI_PINS_MASK;
+//  pinMode(MISO_GPIO, INPUT); // already default after boot
+  AVR_SPI_DDR &= ~AVR_MISO_LINE_MASK;
+}
+*/
+/*
 void disableSpiPins () {
-  pinMode(SCK, INPUT);
-  digitalWrite(SCK, LOW);
-  pinMode(MOSI, INPUT);
-  digitalWrite(MOSI, LOW);
-  pinMode(MISO, INPUT);
-  digitalWrite(MISO, LOW);
+  pinMode(SCK_GPIO, INPUT);
+  digitalWrite(SCK_GPIO, LOW);
+  pinMode(MOSI_GPIO, INPUT);
+  digitalWrite(MOSI_GPIO, LOW);
+  pinMode(MISO_GPIO, INPUT);
+  digitalWrite(MISO_GPIO, LOW);
+}
+*/
+
+// saves 34 Bytes of flash
+void disableSpiPins () {
+//  pinMode(SCK_GPIO, INPUT);
+  AVR_SCK_DDR &= ~AVR_SCK_MASK;
+//  digitalWrite(SCK_GPIO, LOW);
+  AVR_SCK_PORT &= ~AVR_SCK_MASK;
+//  pinMode(MOSI_GPIO, INPUT);
+  AVR_MOSI_DDR &= ~AVR_MOSI_MASK;
+//  digitalWrite(MOSI_GPIO, LOW);
+  AVR_MOSI_PORT &= ~AVR_MOSI_MASK;
+//  pinMode(MISO_GPIO, INPUT);
+  AVR_MISO_DDR &= ~AVR_MISO_MASK;
+//  digitalWrite(MISO_GPIO, LOW);
+  AVR_MISO_PORT &= ~AVR_MISO_MASK;
 }
 
+/*
+// saves 34 Bytes of flash
+void disableSpiPins () {
+//  pinMode(SCK_GPIO, INPUT);
+//  digitalWrite(SCK_GPIO, LOW);
+//  pinMode(MOSI_GPIO, INPUT);
+//  digitalWrite(MOSI_GPIO, LOW);
+//  pinMode(MISO_GPIO, INPUT);
+//  digitalWrite(MISO_GPIO, LOW);
+  AVR_SCK_DDR &= ~AVR_DISABLE_SPI_PINS_MASK;  // needs 8 Bytes of flash
+  AVR_SCK_PORT &= ~AVR_DISABLE_SPI_PINS_MASK; // needs 8 Bytes of flash
+}
+*/
+/*
 byte transfer (byte val) {
   for (byte ii = 0; ii < 8; ++ii) {
-    digitalWrite(MOSI, (val & 0x80) ? HIGH : LOW);
-    digitalWrite(SCK, HIGH);
+    digitalWrite(MOSI_GPIO, (val & 0x80) ? HIGH : LOW); // set MOSI_GPIO to the state of MSBit
+    digitalWrite(SCK_GPIO, HIGH);
     delayMicroseconds(4);
-    val = (val << 1) + digitalRead(MISO);
-    digitalWrite(SCK, LOW); // slow pulse
+    val = (val << 1) + digitalRead(MISO_GPIO); // shift val one bit to the left, set LSBit to the state of MISO_GPIO
+    digitalWrite(SCK_GPIO, LOW); // slow pulse
     delayMicroseconds(4);
+  }
+  return val;
+}
+*/
+
+// saves 12 bytes of flash memory
+byte transfer (byte val) {
+  for (byte ii = 0; ii < 8; ++ii) {
+    digitalWrite(MOSI_GPIO, (val & 0x80) ? HIGH : LOW); // set MOSI_GPIO to the state of MSBit
+//    AVR_MOSI_PORT = ((val & 0x80) ? (AVR_MOSI_PORT | AVR_MOSI_LINE_MASK) : (AVR_MOSI_PORT & ~AVR_MOSI_LINE_MASK)); // TODO this does not work
+//  digitalWrite(SCK, HIGH);
+    AVR_SCK_PORT |= AVR_SCK_LINE_MASK;
+    delayMicroseconds(4);
+//    _delay_us(4); // saves 2 bytes of flash memory
+    val = (val << 1) + digitalRead(MISO_GPIO); // shift val one bit to the left, set LSBit to the state of MISO_GPIO
+//    val = (val << 1) + (AVR_MISO_PIN & AVR_MISO_LINE_MASK); // TODO this does not work
+//  digitalWrite(SCK, LOW); // slow pulse
+    AVR_SCK_PORT &= ~AVR_SCK_LINE_MASK;
+    delayMicroseconds(4);
+//    _delay_us(4); // does this save flash or does it need more flash?
   }
   return val;
 }
@@ -481,6 +760,7 @@ unsigned int identifyDevice () {
 void busyWait () {
   while ((ispSend(0xF0, 0x00, 0x00, 0x00) & 1) == 1) {
     delay(10);
+//  _delay_ms(10);
   }
 }
 
@@ -510,6 +790,7 @@ void busyWait () {
     0x958A - Mega32U2   L:7   H:7
 */
 
+// 24832 Bytes ==> 23422 Bytes ==> needs approximately 1410 Bytes of flash
 void printPartFromId (byte sig1, byte sig2) {
   boolean isTiny = false;
   print(F("= "));
@@ -634,8 +915,8 @@ void printPartFromId (byte sig1, byte sig2) {
       eeSize = 512;
       dwdr = 0x27;
       isTiny = true;
-    } else if (sig2 == 0x89) {      // 0x9389 - Mega8u2
-      println(F("Mega8u2"));  
+    } else if (sig2 == 0x89) {      // 0x9389 - Mega8U2
+      println(F("Mega8U2"));  
       flashSize = 8192;
       ramBase = 0x100;
       ramSize = 512;
@@ -707,18 +988,294 @@ void printPartFromId (byte sig1, byte sig2) {
   }
 }
 
+/*
+// saves 156 Bytes of flash but does not function yet
+//typedef struct partID {
+struct parts {
+  uint8_t sig1;
+  uint8_t sig2;
+  char mcuLabel[5];
+  uint16_t flashSize;
+  uint16_t ramBase;
+  uint16_t ramSize;
+  uint16_t eeSize;
+  uint16_t dwdr;
+  uint8_t dwen;
+  uint8_t ckd8;
+  boolean isTiny;
+//} PARTID;
+};
+
+//const parts partID[21] PROGMEM = {
+////const PARTID partID[] PROGMEM = {
+// // byte, byte,   uint,  uint, uint, uint, byte,  byte, byte, bool  
+// // sig1, sig2, flashS,  ramB, ramS,  eeS, dwdr,  dwen, ckd8, tiny
+//   {0x90, 0x07,   1024,  0x60,   64,   64, 0x2E,  0x08, 0x10, true}, // 0x9007 - Tiny13
+//   {0x91, 0x0A,   2048,  0x60,  128,  128, 0x1F,  0x80, 0x00, true}, // 0x920A - Tiny2313
+//   {0x91, 0x0B,   2048,  0x60,  128,  128, 0x27,  0x00, 0x00, true}, // 0x920B - Tiny24
+//   {0x91, 0x08,   2048,  0x60,  128,  128, 0x22,  0x00, 0x00, true}, // 0x9108 - Tiny25
+//   {0x92, 0x05,   4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x9295 - Mega48A
+//   {0x92, 0x07,   4096,  0x60,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9207 - Tiny44
+//   {0X92, 0x06,   4096,  0x60,  256,  256, 0x22,  0x00, 0x00, true}, // 0x9206 - Tiny45
+//   {0X92, 0x0A,   4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x920A - Mega48PA
+//   {0x92, 0x15,   4096, 0x100,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9215 - Tiny441
+//   {0x93, 0x0A,   8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930A - Mega88A
+//   {0x93, 0x0C,   8192,  0x60,  512,  512, 0x27,  0x00, 0x00, true}, // 0x930C - Tiny84
+//   {0x93, 0x0B,   8192,  0x60,  512,  512, 0x22,  0x00, 0x00, true}, // 0x930B - Tiny85
+//   {0x93, 0x0F,   8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930F - Mega88PA
+//   {0x93, 0x15,   8192, 0x100,  512,  512, 0x27,  0x00, 0x00, true}, // 0x9315 - Tiny841
+//   {0x93, 0x89,   8192, 0x100,  512,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9389 - Mega8U2
+//   {0x94, 0x06,  16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9406 - Mega168A
+//   {0x94, 0x0B,  16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9408 - Mega168PA
+//   {0x94, 0x89,  16384, 0x100,  512,  512, 0x31,  0x80, 0x00, 0x00}, // 0x9489 - Mega16U2
+//   {0x95, 0x0F,  32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x950F - Mega328P
+//   {0x95, 0x14,  32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x9514 - Mega328
+//   {0x95, 0x8A,  32768, 0x100, 1024, 1024, 0x31,  0x80, 0x00, 0x00}  // 0x958A - Mega32U2
+//};
+
+//const parts partID[21] PROGMEM = {
+////const PARTID partID[] PROGMEM = {
+// // byte, byte, String,       uint,  uint, uint, uint, byte,  byte, byte, bool
+// // sig1, sig2, mcuLabel,   flashS,  ramB, ramS,  eeS, dwdr,  dwen, ckd8, tiny
+//   {0x90, 0x07, "Tiny13",     1024,  0x60,   64,   64, 0x2E,  0x08, 0x10, true}, // 0x9007 - Tiny13
+//   {0x91, 0x0A, "Tiny2313",   2048,  0x60,  128,  128, 0x1F,  0x80, 0x00, true}, // 0x920A - Tiny2313
+//   {0x91, 0x0B, "Tiny24",     2048,  0x60,  128,  128, 0x27,  0x00, 0x00, true}, // 0x920B - Tiny24
+//   {0x91, 0x08, "Tiny25",     2048,  0x60,  128,  128, 0x22,  0x00, 0x00, true}, // 0x9108 - Tiny25
+//   {0x92, 0x05, "Mega48A",    4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x9295 - Mega48A
+//   {0x92, 0x07, "Tiny44",     4096,  0x60,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9207 - Tiny44
+//   {0X92, 0x06, "Tiny45",     4096,  0x60,  256,  256, 0x22,  0x00, 0x00, true}, // 0x9206 - Tiny45
+//   {0X92, 0x0A, "Mega48PA",   4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x920A - Mega48PA
+//   {0x92, 0x15, "Tiny441",    4096, 0x100,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9215 - Tiny441
+//   {0x93, 0x0A, "Mega88A",    8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930A - Mega88A
+//   {0x93, 0x0C, "Tiny84",     8192,  0x60,  512,  512, 0x27,  0x00, 0x00, true}, // 0x930C - Tiny84
+//   {0x93, 0x0B, "Tiny85",     8192,  0x60,  512,  512, 0x22,  0x00, 0x00, true}, // 0x930B - Tiny85
+//   {0x93, 0x0F, "Mega88PA",   8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930F - Mega88PA
+//   {0x93, 0x15, "Tiny841",    8192, 0x100,  512,  512, 0x27,  0x00, 0x00, true}, // 0x9315 - Tiny841
+//   {0x93, 0x89, "Mega8U2",    8192, 0x100,  512,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9389 - Mega8U2
+//   {0x94, 0x06, "Mega168A",  16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9406 - Mega168A
+//   {0x94, 0x0B, "Mega168PA", 16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9408 - Mega168PA
+//   {0x94, 0x89, "Mega16U2",  16384, 0x100,  512,  512, 0x31,  0x80, 0x00, 0x00}, // 0x9489 - Mega16U2
+//   {0x95, 0x0F, "Mega328P",  32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x950F - Mega328P
+//   {0x95, 0x14, "Mega328",   32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x9514 - Mega328
+//   {0x95, 0x8A, "Mega32U2",  32768, 0x100, 1024, 1024, 0x31,  0x80, 0x00, 0x00}  // 0x958A - Mega32U2
+//};
+
+const parts partID[21] PROGMEM = {
+//const PARTID partID[] PROGMEM = {
+ // byte, byte, String,       uint,  uint, uint, uint, byte,  byte, byte, bool
+ // sig1, sig2, mcuLabel,   flashS,  ramB, ramS,  eeS, dwdr,  dwen, ckd8, tiny
+   {0x90, 0x07, "13   ",     1024,  0x60,   64,   64, 0x2E,  0x08, 0x10, true}, // 0x9007 - Tiny13
+   {0x91, 0x0A, "2313 ",     2048,  0x60,  128,  128, 0x1F,  0x80, 0x00, true}, // 0x920A - Tiny2313
+   {0x91, 0x0B, "24   ",     2048,  0x60,  128,  128, 0x27,  0x00, 0x00, true}, // 0x920B - Tiny24
+   {0x91, 0x08, "25   ",     2048,  0x60,  128,  128, 0x22,  0x00, 0x00, true}, // 0x9108 - Tiny25
+   {0x92, 0x05, "48A  ",     4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x9295 - Mega48A
+   {0x92, 0x07, "44   ",     4096,  0x60,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9207 - Tiny44
+   {0X92, 0x06, "45   ",     4096,  0x60,  256,  256, 0x22,  0x00, 0x00, true}, // 0x9206 - Tiny45
+   {0X92, 0x0A, "48PA ",     4096, 0x100,  512,  256, 0x31,  0x00, 0x00, 0x00}, // 0x920A - Mega48PA
+   {0x92, 0x15, "441  ",     4096, 0x100,  256,  256, 0x27,  0x00, 0x00, true}, // 0x9215 - Tiny441
+   {0x93, 0x0A, "88A  ",     8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930A - Mega88A
+   {0x93, 0x0C, "84   ",     8192,  0x60,  512,  512, 0x27,  0x00, 0x00, true}, // 0x930C - Tiny84
+   {0x93, 0x0B, "85   ",     8192,  0x60,  512,  512, 0x22,  0x00, 0x00, true}, // 0x930B - Tiny85
+   {0x93, 0x0F, "88PA ",     8192, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x930F - Mega88PA
+   {0x93, 0x15, "841  ",     8192, 0x100,  512,  512, 0x27,  0x00, 0x00, true}, // 0x9315 - Tiny841
+   {0x93, 0x89, "8U2  ",     8192, 0x100,  512,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9389 - Mega8U2
+   {0x94, 0x06, "168A ",    16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9406 - Mega168A
+   {0x94, 0x0B, "168PA",    16384, 0x100, 1024,  512, 0x31,  0x00, 0x00, 0x00}, // 0x9408 - Mega168PA
+   {0x94, 0x89, "16U2 ",    16384, 0x100,  512,  512, 0x31,  0x80, 0x00, 0x00}, // 0x9489 - Mega16U2
+   {0x95, 0x0F, "328P ",    32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x950F - Mega328P
+   {0x95, 0x14, "328  ",    32768, 0x100, 2048, 1024, 0x31,  0x00, 0x00, 0x00}, // 0x9514 - Mega328
+   {0x95, 0x8A, "32U2 ",    32768, 0x100, 1024, 1024, 0x31,  0x80, 0x00, 0x00}  // 0x958A - Mega32U2
+};
+
+// approx. 500 Bytes
+// if(true == isTiny) mcuLabels begins with "T", otherwhise with "M"
+// almost always if(true == isTiny && !Tinyx41) {ramBase = 0x60; }else {ramBase = 0x100;}
+// if(xxxxVVzz) flash is toInt(VV)*1024 Bytes
+
+uint8_t printPartFromId (uint8_t sig1, uint8_t sig2) {
+  boolean isTiny = false;
+  print(F("= "));
+  dwen = 0x40;                      // DWEN bit default location (override, as needed)
+  ckdiv8 = 0x80;                    // CKDIV8 bit default location (override, as needed)
+  hasDeviceInfo = false;
+  
+  for(uint8_t idx = 0; idx < ArraySize (partID); idx++) {
+    //PARTID thisMCU;
+    parts thisMCU;
+    PROGMEM_readAnything (&partID[idx], thisMCU);
+    if(sig1 == thisMCU.sig1) {
+      if(sig2 == thisMCU.sig2) {
+        hasDeviceInfo = true;
+        isTiny = thisMCU.isTiny;
+        isTiny ? print(F("Tiny")) : print(F("Mega"));
+        println(thisMCU.mcuLabel);
+        flashSize = thisMCU.flashSize;
+        ramBase = thisMCU.ramBase;
+        ramSize = thisMCU.ramSize;
+        eeSize = thisMCU.eeSize;
+        dwen = thisMCU.dwen;
+        dwdr = thisMCU.dwdr;
+        ckdiv8 = thisMCU.ckd8;
+      }
+    }
+  }
+  // Set EEPROM Access Registers
+  if (isTiny) {
+    eecr  = 0x1C;
+    eedr  = 0x1D;
+    eearl = 0x1E;
+    eearh = 0x1F;
+  } else {
+    eecr  = 0x1F;
+    eedr  = 0x20;
+    eearl = 0x21;
+    eearh = 0x22;
+  }
+}
+*/
+/*
+uint8_t printPartFromId (uint8_t sig1, uint8_t sig2) {
+  boolean isTiny = false;
+  pf.print(F("= "));
+  dwen = 0x40;                      // DWEN bit default location (override, as needed)
+  ckdiv8 = 0x80;                    // CKDIV8 bit default location (override, as needed)
+  //hasDeviceInfo = true;
+
+} else {
+    hasDeviceInfo = false;
+  }
+  // Set EEPROM Access Registers
+  if (isTiny) {
+    memo.eecr  = 0x1C;
+    memo.eedr  = 0x1D;
+    memo.eearl = 0x1E;
+    memo.eearh = 0x1F;
+  } else {
+    memo.eecr  = 0x1F;
+    memo.eedr  = 0x20;
+    memo.eearl = 0x21;
+    memo.eearh = 0x22;
+  }
+// if(true == isTiny) mcuLabels begins with "T", otherwhise with "M"
+  isTiny = false;
+  if(myString.startsWith("T")) {
+    isTiny = true;
+    if(myString.
+    ramBase = 0x60
+  }
+// almost always if(true == isTiny && !Tinyx41) {ramBase = 0x60; }else {ramBase = 0x100;}
+  if(xxxxVVzz) flash is toInt(VV)*1024 Bytes
+// or easier from byte/int to String
+
+int16_t flashSize = (1 << (flash%2)) + 
+
+
+const String PROGMEM MCUSeriesArray[seriesID] = {"Tiny", "Mega", "xMega", "PIC"};
+String mcuLabel = (MCUSeriesArray[seriesID] + String(flashSize) + PartArray[idx].Label);
+
+
+  for(uint8_t idx = 0; idx < partIDArray.length; idx++} {
+    if(sig1 == partIDArray[idx].sig1) {
+      if(sig2 == partIDArray[idx].sig2) {
+        return idx;
+      }
+    }
+  }
+  return 255;
+}
+
+uint32_t sfloatToValStart(uint8_t mySFloat) {
+  //                    sign bit
+  sfloatToVal(mantissa, (mySFloat & 0x80) << 24);
+}
+
+uint32_t exponent(const uint8_t& base, uint8_t exponent) {
+  return exponent(base, exponent, 1);
+}
+
+uint32_t exponent(const uint8_t& base, uint8_t exponent, uint32_t result) {
+  if(exponent == 0) return result;
+  result = base * result;
+  return exponent(base, exponent-1, result);
+}
+
+// val = sign * base ^ exponent
+uint32_t sfloatToVal(const uint8_t& base, const uint8_t exponent, const uint8_t& precisition, uint8_t& significant) {
+  return sfloatToVal(base, precisition-1, significant, exponent(base, exponent);
+}
+
+// val = sign * base ^ exponent
+uint32_t sfloatToVal(const uint8_t& base, uint8_t precisition, uint8_t& significant, uint32_t& result) {
+  if(precisition == 0) return result;
+  // result = result + (result >> (significant & precisition) * precisition;
+  result = result | result(result >> (significant & precisition) * precisition; // ignore carrybit
+  return sfloatToVal(significant, precisition-1, significant, result)
+}
+
+
+
+typedef struct partID {
+  const String mcuLabel;
+  const uint16_t flashSize;
+  //const uint16_t ramBase;
+  const uint16_t ramSize;
+  const uint16_t eeSize;
+  const uint8_t memo.dwdr;
+  const uint8_t dwen;
+} PARTID;
+
+PARTID partID {
+  Tiny13, ...
+};
+ // improved:   pointer,   512*2^x,  if(), *2^x, *2^x, if(),  if(), if(), extractFromLabel
+ // byte, byte, char[],       byte,  byte, uint, uint, byte,  byte, byte, boolean  
+ // sig1, sig2, mcuLabel,    flash,  ramB,  ram,   ee, dwdr,  dwen, ckd8, tiny
+   {0x90, 0x07, "Tiny13",     1024,  0x60,   64,   64, 0x2E,  0x08, 0x10, true} // 0x9007 - Tiny13
+   {0x91, 0x0A, "Tiny2313",   2048,  0x60,  128,  128, 0x1F,  0x80,   --, true} // 0x920A - Tiny2313
+   {0x91, 0x0B, "Tiny24",     2048,  0x60,  128,  128, 0x27,    --,   --, true} // 0x920B - Tiny24
+   {0x91, 0x08, "Tiny25",     2048,  0x60,  128,  128, 0x22,    --,   --, true} // 0x9108 - Tiny25
+   {0x92, 0x05, "Mega48A",    4096, 0x100,  512,  256, 0x31,    --,   --,   --} // 0x9295 - Mega48A
+   {0x92, 0x07, "Tiny44",     4096,  0x60,  256,  256, 0x27,    --,   --, true} // 0x9207 - Tiny44
+   {0X92, 0x06, "Tiny45",     4096,  0x60,  256,  256, 0x22,    --,   --, true} // 0x9206 - Tiny45
+   {0X92, 0x0A, "Mega48PA",   4096, 0x100,  512,  256, 0x31,    --,   --,   --} // 0x920A - Mega48PA
+   {0x92, 0x15, "Tiny441",    4096, 0x100,  256,  256, 0x27,    --,   --, true} // 0x9215 - Tiny441
+   {0x93, 0x0A, "Mega88A",    8192, 0x100, 1024,  512, 0x31,    --,   --,   --} // 0x930A - Mega88A
+   {0x93, 0x0C, "Tiny84",     8192,  0x60,  512,  512, 0x27,    --,   --, true} // 0x930C - Tiny84
+   {0x93, 0x0B, "Tiny85",     8192,  0x60,  512,  512, 0x22,    --,   --, true} // 0x930B - Tiny85
+   {0x93, 0x0F, "Mega88PA",   8192, 0x100, 1024,  512, 0x31,    --,   --,   --} // 0x930F - Mega88PA
+   {0x93, 0x15, "Tiny841",    8192, 0x100,  512,  512, 0x27,    --,   --, true} // 0x9315 - Tiny841
+   {0x93, 0x89, "Mega8U2",    8192, 0x100,  512,  512, 0x31,    --,   --,   --} // 0x9389 - Mega8U2
+   {0x94, 0x06, "Mega168A",  16384, 0x100, 1024,  512, 0x31,    --,   --,   --} // 0x9406 - Mega168A
+   {0x94, 0x0B, "Mega168PA", 16384, 0x100, 1024,  512, 0x31,    --,   --,   --} // 0x9408 - Mega168PA
+   {0x94, 0x89, "Mega16U2",  16384, 0x100,  512,  512, 0x31,  0x80,   --,   --} // 0x9489 - Mega16U2
+   {0x95, 0x0F, "Mega328P",  32768, 0x100, 2048, 1024, 0x31,    --,   --,   --} // 0x950F - Mega328P
+   {0x95, 0x14, "Mega328",   32768, 0x100, 2048, 1024, 0x31,    --,   --,   --} // 0x9514 - Mega328
+   {0x95, 0x8A, "Mega32U2",  32768, 0x100, 1024, 1024, 0x31,  0x80,   --,   --} // 0x958A - Mega32U2
+};
+// approx. 500 Bytes
+// if(true == isTiny) mcuLabels begins with "T", otherwhise with "M"
+// almost always if(true == isTiny && !Tinyx41) {ramBase = 0x60; }else {ramBase = 0x100;}
+// if(xxxxVVzz) flash is toInt(VV)*1024 Bytes
+*/
+
 void sendBreak () {
   debugWire.sendBreak();
 }
 
+// saves 24 Bytes of flash
 boolean doBreak () { 
   println(F("Cycling Vcc"));
   powerOff();
-  digitalWrite(VCC, HIGH);
-  digitalWrite(RESET, LOW);
-  pinMode(RESET, INPUT);
-  pinMode(VCC, OUTPUT);
+//  digitalWrite(VCC_GPIO, HIGH);
+  AVR_VCC_EN_PORT |= AVR_VCC_EN_MASK;
+//  digitalWrite(RESET_GPIO, LOW);
+  AVR_RESET_LINE_PORT &= ~AVR_RESET_LINE_MASK;
+//  pinMode(RESET_GPIO, INPUT);
+  AVR_RESET_LINE_DDR |= AVR_RESET_LINE_MASK;
+//  pinMode(VCC_GPIO, OUTPUT);
+  AVR_VCC_EN_DDR |= AVR_VCC_EN_MASK;
   delay(100);
+//  _delay_ms(100);
   // Mesaure debugWire Baud rate by sending two BREAK commands to measure both high-going and
   // low-going pulses in the 0x55 response byte
   debugWire.enable(false);
@@ -727,16 +1284,18 @@ boolean doBreak () {
   cli();                      // turn off interrupts for timing
   sendBreak();
   for (byte ii = 0; ii < 4; ii++) {
-    pulse += pulseIn(RESET, HIGH, 20000);
+    pulse += pulseIn(RESET_GPIO, HIGH, 20000);
   }
   delay(10);
+//  _delay_ms(10);
   sendBreak();
   for (byte ii = 0; ii < 4; ii++) {
-    pulse += pulseIn(RESET, LOW, 20000);
+    pulse += pulseIn(RESET_GPIO, LOW, 20000);
   }
   SREG = oldSREG;             // turn interrupts back on
   delay(10);
-  //!!!! // changes doesn't help
+//  _delay_ms(10);
+  //!!!! // changes doesn't help when DebugWire fails on AtMega32U4
   unsigned long baud = 8000000L / pulse;
   //unsigned long baud = 15594; // test value
   //unsigned long baud = 16000; // test value
@@ -1386,7 +1945,7 @@ void setBp (unsigned int bp) {
   byte cmd[] = {0xD1, (byte)(bp >> 8), (byte)bp};
   sendCmd(cmd, sizeof(cmd));
 }
-
+/*
 void printDebugCommands () {
     print(F(
       "Debugging Commands:\n"
@@ -1433,6 +1992,64 @@ void printDebugCommands () {
 #endif
   ));
 }
+*/
+
+// needs exactly the same size
+const char string_DebugCommands[] PROGMEM = 
+      "Debugging Commands:\n"
+      "  HELP          Print this menu\n"
+      "  REGS          Print All Registers 0-31\n"
+      "  Rdd           Print Value of Reg dd (dd is a decimal value from 0 - 31)\n"
+      "  Rdd=xx        Set Reg dd to New Value xx (dd is a decimal value from 0 - 31)\n"
+      "  IOxx          Print Value of I/O space location xx\n"
+      "  IOxx=yy       Set I/O space location xx to new value yy\n"
+      "  IOxx.d=b      Change bit d (0-7) in I/O location xx to value b (1 or 0)\n"
+      "  SRAMxxxx      Read and Print 32 bytes from SRAM address xxxx\n"
+      "  SBxxxx        Print Byte Value of SRAM location xxxx\n"
+      "  SBxxxx=yy     Set SRAM location xxxx to new byte value yy\n"
+      "  SWxxxx        Print Word Value of SRAM location xxxx\n"
+      "  SWxxxx=yyyy   Set SRAM location xxxx to new word value yyyy\n"
+      "  EBxxxx        Print Byte Value of EEPROM location xxxx\n"
+      "  EBxxxx=yy     Set EEPROM location xxxx to new byte value yy\n"
+      "  EWxxxx        Print Word Value of EEPROM location xxxx\n"
+      "  EWxxxx=yyyy   Set EEPROM location xxxx to new word value yyyy\n"
+      "  CMD=xxxx      Send sequence of bytes xxxx... and show response\n"
+      "  FWxxxx        Print 32 Word Values (64 bytes) from Flash addr xxxx\n"
+      "  FBxxxx        Print 64 Byte Values from Flash addr xxxx and decode ASCII\n"
+      "  LISTxxxx      Disassemble 16 words (32 bytes) from Flash addr xxxx\n"
+      "  RUN           Start Execution at Current Value of PC (use BREAK to stop)\n"
+      "  RUNxxxx       Start Execution at xxxx (use BREAK to stop)\n"
+      "  RUNxxxx yyyy  Start Execution at xxxx with a Breakpoint set at yyyy\n"
+      "  RUN xxxx      Start Execution at Current Value of PC with breakpoint at xxxx\n"
+      "  BREAK         Send Async BREAK to Target (stops execution)\n"
+      "  STEP          Single Step One Instruction at Current PC\n"
+      "  RESET         Reset Target\n"
+      "  EXIT          Exit from debugWire mode back to In-System\n"
+      "  PC            Read and Print Program Counter\n"
+      "  PC=xxxx       Set Program Counter to xxxx\n"
+      "  SIG           Read and Print Device Signature\n"
+#if DEVELOPER
+      "Developer Commands:\n"
+      "  CMD=xxxx      Send Sequence of Bytes xxxx... and show response\n"
+      "  BP            Read and Print Breakpoint Register\n"
+      "  BP=xxxx       Set Breakpoint Register to xxxxe\n"
+      "  EXEC=xxxx     Execute Current Instruction opcode xxxxe\n"
+      "  RAMSET        Init first 32 bytes of SRAMe\n"
+      "  Dxxxx         Disassemble single word instruction opcode xxxxe\n"
+      "  Dxxxx yyyy    Disassemble two word instruction opcode xxxx + yyyye\n"
+#endif
+    ;
+
+/*
+// 24738 Bytes ==> 22446 Bytes
+// Light version saves 2292 Bytes of flash
+const char string_DebugCommands[] PROGMEM = "$3A";
+*/
+
+void printDebugCommands () {
+    print(FV(string_DebugCommands));
+}
+
 
 void setRepeatCmd (const __FlashStringHelper* cmd, unsigned int addr) {
   strcpy_P(rpt, (char*) cmd);
@@ -1445,7 +2062,7 @@ void setRepeatCmd (const __FlashStringHelper* cmd, unsigned int addr) {
 }
 
 void loop () {
-  boolean mode = digitalRead(PMODE);
+  boolean mode = digitalRead(PMODE_GPIO);
   if (runMode != mode) {
     runMode = mode;
     if (runMode) {
@@ -2171,10 +2788,10 @@ void debugger () {
 #if DEVELOPER
         case 'P':                                             // Turn on power to chip (used to run code)
           powerOff();
-          digitalWrite(VCC, HIGH);
-          digitalWrite(RESET, LOW);
-          pinMode(RESET, INPUT);
-          pinMode(VCC, OUTPUT);
+          digitalWrite(VCC_GPIO, HIGH);
+          digitalWrite(RESET_GPIO, LOW);
+          pinMode(RESET_GPIO, INPUT);
+          pinMode(VCC_GPIO, OUTPUT);
           println(F("VCC On"));
           break;
           
@@ -2271,7 +2888,7 @@ void debugger () {
     }
   }
 }
-
+/*
 void printMenu () {
   println(F("Commands:"));
   println(F(" F - Identify Device & Print Fuses"));
@@ -2288,6 +2905,53 @@ void printMenu () {
   println(F(" P - Vcc On"));
   println(F(" O - Vcc Off"));
 #endif 
+}
+*/
+/*
+// saves 70 Bytes of flash memory
+void printMenu () {
+  print(F(
+    "Commands:\n"
+    " F - Identify Device & Print Fuses\n"
+    " + - Enable debugWire DWEN Fuse\n"
+    " - - Disable debugWire DWEN Fuse\n"
+    " 8 - Enable CKDIV8 (divide clock by 8)\n"
+    " 1 - Disable CKDIV8\n"
+    " B - Engage Debugger\n"
+#if 0
+    " E - Erase Flash & EEPROM\n"
+#endif
+#if DEVELOPER
+    " C - Send 4 Byte ISP Command\n"
+    " P - Vcc On\n"
+    " O - Vcc Off\n"
+#endif
+  ));
+}
+*/
+
+// saves 70 Bytes of flash memory too
+const char string_menu[] PROGMEM = 
+    "Commands:\n"
+    " F - Identify Device & Print Fuses\n"
+    " + - Enable debugWire DWEN Fuse\n"
+    " - - Disable debugWire DWEN Fuse\n"
+    " 8 - Enable CKDIV8 (divide clock by 8)\n"
+    " 1 - Disable CKDIV8\n"
+    " B - Engage Debugger\n"
+#if 0
+    " E - Erase Flash & EEPROM\n"
+#endif
+#if DEVELOPER
+    " C - Send 4 Byte ISP Command\n"
+    " P - Vcc On\n"
+    " O - Vcc Off\n"
+#endif
+    ;
+
+void printMenu () {
+  print(FV(string_menu));
+  //print(string_menu); // Without Flashstringhelper this leads to encoding errors
 }
 
    //
@@ -2479,7 +3143,14 @@ void print (const char *txt) {
   cursor += strlen(txt);
   Serial.print(txt);
 }
-
+/*
+// TODO solve encoding errors
+void print2 (const char *txt) {
+  strcpy_P(flashBuf, (char *)pgm_read_word(*txt));  // Necessary casts and dereferencing, just copy
+  cursor += strlen(txt);
+  Serial.print((char) flashBuf);
+}
+*/
 void print (const __FlashStringHelper* txt) {
   cursor += strlen_P((char *) txt);
   Serial.print(txt);
@@ -2842,7 +3513,7 @@ boolean dAsmBitOps (unsigned int opcode) {
   }
   return false;
 }
-
+/*
 boolean dAsmBranch (unsigned int opcode) {
   switch (opcode & ~0x3F8) {
     case 0xf000: printInst(F("brcs")); return true;   // 1111 00kk kkkk k000
@@ -2864,7 +3535,135 @@ boolean dAsmBranch (unsigned int opcode) {
   }
   return false;
 }
+*/
 
+// saves approximately 368 Bytes of flash
+//typedef struct BranchOPs {
+struct BRANCHOPS {
+  uint8_t code1;
+  uint8_t code2;
+  char cmdName[5];
+//  String cmdName[5]; // this results in decoding errors because char[] and String are different!!!
+  // error: variable 'BranchOPs' with dynamic initialization put into program memory area
+};
+//} BRANCHOPS;
+
+
+const BRANCHOPS BranchOPs[] PROGMEM = {
+//   byte, byte, char[]
+//  code1, code2, cmdName
+    {0xf0, 0x00, "brcs"}, // 1111 00kk kkkk k000
+    {0xf0, 0x01, "breq"}, // 1111 00kk kkkk k001
+    {0xf0, 0x02, "brmi"}, // 1111 00kk kkkk k010
+    {0xf0, 0x03, "brvs"}, // 1111 00kk kkkk k011
+    {0xf0, 0x04, "brlt"}, // 1111 00kk kkkk k100
+    {0xf0, 0x05, "brhs"}, // 1111 00kk kkkk k101
+    {0xf0, 0x06, "brts"}, // 1111 00kk kkkk k110
+    {0xf0, 0x07, "brie"}, // 1111 00kk kkkk k111
+    {0xf4, 0x00, "brcc"}, // 1111 01kk kkkk k000
+    {0xf4, 0x01, "brne"}, // 1111 01kk kkkk k001
+    {0xf4, 0x02, "brpl"}, // 1111 01kk kkkk k010
+    {0xf4, 0x03, "brvc"}, // 1111 01kk kkkk k011
+    {0xf4, 0x04, "brge"}, // 1111 01kk kkkk k100
+    {0xf4, 0x05, "brhc"}, // 1111 01kk kkkk k101
+    {0xf4, 0x06, "brtc"}, // 1111 01kk kkkk k110
+    {0xf4, 0x07, "brid"}  // 1111 01kk kkkk k111
+};
+// TODO: THIS RESULTS IN DW COMMUNICATION ERRORS
+boolean dAsmBranch (unsigned int opcode) {
+  uint8_t code1 = (opcode >> 8) & ~0x03;
+  uint8_t code2 = opcode & ~0xF8;
+  bool state = false; // TODO: WITHOUT EXTRA VARIABLE
+  //return false;
+  for(uint8_t idx = 0; idx < ArraySize(BranchOPs); idx++) {
+    BRANCHOPS thisOP;
+    PROGMEM_readAnything (&BranchOPs[idx], thisOP);
+    if(code1 == thisOP.code1) {
+      if(code2 == thisOP.code2) {
+        //printInst(FV(thisOP.cmdName));
+        // printInst(FV(thisOP.cmdName)); TODO test
+        print(thisOP.cmdName); // prints out the correct value, for testing purposes only
+        //Serial.println(F("dAsmBranch")); // debug code
+        //Serial.println(thisOP.code1, HEX);
+        //Serial.println(thisOP.code2, HEX);
+        //Serial.println(thisOP.cmdName);
+        break;
+        //return true;
+        state = true;
+      }
+    }
+  }*/
+  return state;
+}
+
+/*
+// saves approximately 368 Bytes of flash ==> needs exactly the same memory
+const PROGMEM char brcs[] = "brcs"; // 1111 00kk kkkk k000
+const PROGMEM char breq[] = "breq"; // 1111 00kk kkkk k001
+const PROGMEM char brmi[] = "brmi"; // 1111 00kk kkkk k010
+const PROGMEM char brvs[] = "brvs"; // 1111 00kk kkkk k011
+const PROGMEM char brlt[] = "brlt"; // 1111 00kk kkkk k100
+const PROGMEM char brhs[] = "brhs"; // 1111 00kk kkkk k101
+const PROGMEM char brts[] = "brts"; // 1111 00kk kkkk k110
+const PROGMEM char brie[] = "brie"; // 1111 00kk kkkk k111
+const PROGMEM char brcc[] = "brcc"; // 1111 01kk kkkk k000
+const PROGMEM char brne[] = "brne"; // 1111 01kk kkkk k001
+const PROGMEM char brpl[] = "brpl"; // 1111 01kk kkkk k010
+const PROGMEM char brvc[] = "brvc"; // 1111 01kk kkkk k011
+const PROGMEM char brge[] = "brge"; // 1111 01kk kkkk k100
+const PROGMEM char brhc[] = "brhc"; // 1111 01kk kkkk k101
+const PROGMEM char brtc[] = "brtc"; // 1111 01kk kkkk k110
+const PROGMEM char brid[] = "brid"; // 1111 01kk kkkk k111
+
+//typedef struct BranchOPs {
+struct BRANCHOPS {
+  uint8_t code1;
+  uint8_t code2;
+  char* cmd;
+//  String cmdName[5]; // this results in decoding errors because char[] and String are different!!!
+  // error: variable 'BranchOPs' with dynamic initialization put into program memory area
+};
+//} BRANCHOPS;
+
+
+const BRANCHOPS BranchOPs[] PROGMEM = {
+//   byte, byte, char[]
+//  code1, code2, cmdName
+    {0xf0, 0x00, brcs}, // 1111 00kk kkkk k000
+    {0xf0, 0x01, breq}, // 1111 00kk kkkk k001
+    {0xf0, 0x02, brmi}, // 1111 00kk kkkk k010
+    {0xf0, 0x03, brvs}, // 1111 00kk kkkk k011
+    {0xf0, 0x04, brlt}, // 1111 00kk kkkk k100
+    {0xf0, 0x05, brhs}, // 1111 00kk kkkk k101
+    {0xf0, 0x06, brts}, // 1111 00kk kkkk k110
+    {0xf0, 0x07, brie}, // 1111 00kk kkkk k111
+    {0xf4, 0x00, brcc}, // 1111 01kk kkkk k000
+    {0xf4, 0x01, brne}, // 1111 01kk kkkk k001
+    {0xf4, 0x02, brpl}, // 1111 01kk kkkk k010
+    {0xf4, 0x03, brvc}, // 1111 01kk kkkk k011
+    {0xf4, 0x04, brge}, // 1111 01kk kkkk k100
+    {0xf4, 0x05, brhc}, // 1111 01kk kkkk k101
+    {0xf4, 0x06, brtc}, // 1111 01kk kkkk k110
+    {0xf4, 0x07, brid}  // 1111 01kk kkkk k111
+};
+
+boolean dAsmBranch (unsigned int opcode) {
+  uint8_t code1 = opcode & ~0x03;
+  uint8_t code2 = opcode & ~0xF8;
+  return false;
+  for(uint8_t idx = 0; idx < ArraySize (BranchOPs); idx++) {
+    BRANCHOPS thisOP;
+    PROGMEM_readAnything (&BranchOPs[idx], thisOP);
+    if(code1 == thisOP.code1) {
+      if(code2 == thisOP.code2) {
+        printInst(FV(thisOP.cmd));
+        //print(thisOP.cmdName); // for testing purposes only
+        return true;
+      }
+    }
+  }
+}
+*/
 boolean dAsmMul (unsigned int opcode) {
   switch (opcode & ~0x077) {
     case 0x0300: printInst(F("mulsu"));   return true;
@@ -2914,8 +3713,8 @@ void programmer (void) {
 
 void selectProgrammer () {
   pmode = 0;
-  digitalWrite(VCC, HIGH);    // Enable VCC
-  pinMode(VCC, OUTPUT);
+  digitalWrite(VCC_GPIO, HIGH);    // Enable VCC
+  pinMode(VCC_GPIO, OUTPUT);
   delay(100);
   debugWire.enable(false);
   disableSpiPins();          // Disable SPI pins
@@ -3028,18 +3827,18 @@ void avrisp () {
       if (!pmode) {
         delay(100);
         // Reset target before driving SCK or MOSI
-        digitalWrite(RESET, rst_active_high ? HIGH : LOW);  // Reset Enabled
-        pinMode(RESET, OUTPUT);
+        digitalWrite(RESET_GPIO, rst_active_high ? HIGH : LOW);  // Reset Enabled
+        pinMode(RESET_GPIO, OUTPUT);
         enableSpiPins();
         // See AVR datasheets, chapter "Serial_PRG Programming Algorithm":
         // Pulse RESET after SCK is low:
-        digitalWrite(SCK, LOW);
+        digitalWrite(SCK_GPIO, LOW);
         delay(20); // discharge SCK, value arbitrarily chosen
-        digitalWrite(RESET, !rst_active_high ? HIGH : LOW); // Reset Disabled
+        digitalWrite(RESET_GPIO, !rst_active_high ? HIGH : LOW); // Reset Disabled
         // Pulse must be minimum 2 target CPU clock cycles so 100 usec is ok for CPU
         // speeds above 20 KHz
         delayMicroseconds(100);
-        digitalWrite(RESET, rst_active_high ? HIGH : LOW);  // Reset Enabled
+        digitalWrite(RESET_GPIO, rst_active_high ? HIGH : LOW);  // Reset Enabled
         // Send the enable programming command:
         delay(50); // datasheet: must be > 20 msec
         ispSend(0xAC, 0x53, 0x00, 0x00);
@@ -3050,10 +3849,10 @@ void avrisp () {
       
     case 0x51:                                  // 'Q' - 0x51 Leave Program Mode
       // We're about to take the target out of reset so configure SPI pins as input
-      pinMode(MOSI, INPUT);
-      pinMode(SCK, INPUT);
-      digitalWrite(RESET, !rst_active_high ? HIGH : LOW); // Reset Disabled
-      pinMode(RESET, INPUT);
+      pinMode(MOSI_GPIO, INPUT);
+      pinMode(SCK_GPIO, INPUT);
+      digitalWrite(RESET_GPIO, !rst_active_high ? HIGH : LOW); // Reset Disabled
+      pinMode(RESET_GPIO, INPUT);
       pmode = 0;
       empty_reply();
       break;
